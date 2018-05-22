@@ -1,0 +1,201 @@
+<link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
+    rel="stylesheet"
+    integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u"
+    crossorigin="anonymous">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.6.5/angular.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.6.5/angular-cookies.min.js"></script>
+<style>
+    table {
+        width: 500px !important;
+    }
+    .hoverpointer:hover{
+        cursor: pointer;
+    }
+</style>
+<meta charset="utf-8">
+<br>
+<div ng-app="myApp"
+    ng-controller="myCtrl">
+    <div ng-show="!loginOK"
+        class="col-sm-4 col-sm-offset-4">
+        <label>Name</label>
+        <input type="text"
+            class="form-control"
+            ng-model="account.name">
+        <label>Password</label>
+        <input type="password"
+            class="form-control"
+            ng-model="account.pw">
+        <input type="checkbox"
+            ng-model="account.remember"> Remember me
+        <br>
+        <div class="btn btn-primary pull-right"
+            ng-click="login()">Login</div>
+    </div>
+    <center ng-show="loginOK">
+        <div class="btn btn-default"
+            ng-click="refresh()">Refresh</div>
+        <div class="btn btn-default"
+            ng-click="logout()">Logout</div>
+        <br>
+        <br>
+        <label>Settings</label>
+        <table class="table table-condensed">
+            <tr ng-repeat="s in settings">
+                <td>{{s.display}}</td>
+                <td>{{s.value}}</td>
+                <td>
+                    <input type="text"
+                        class="form-control"
+                        style="width: 100px; float:left"
+                        ng-model="s.newvalue">
+                    <div class="btn btn-primary"
+                        ng-click="updateSetting(s)">Set</div>
+                </td>
+            </tr>
+        </table>
+        <label>{{users.length}} Users
+            <span class="glyphicon glyphicon-question-sign hoverpointer" ng-click="showUsersHelp=!showUsersHelp"></span>
+        </label>
+        <br>
+        <div ng-show="showUsersHelp">
+            Usertype "admin" allows this user to log into this admin area.
+            <br> Other users are for Guestlogins. The type is for later analysis.
+            <br> For example: create a user "party" with type "facebook" and publish this login on facebook.
+            <br> Users from facebook will use this login and you can later analyse how many guests came from facebook.
+        </div>
+        <table class="table table-condensed">
+            <tr>
+                <td>Name</td>
+                <td>Password</td>
+                <td>Type</td>
+                <td></td>
+            </tr>
+            <tr ng-repeat="u in users">
+                <td>{{u.name}}</td>
+                <td>{{u.pw}}</td>
+                <td>{{u.type}}</td>
+                <td>
+                    <div class="btn btn-sm btn-danger"
+                        ng-click="deleteUser(u.id)">Delete</div>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <input type="text"
+                        class="form-control"
+                        ng-model="newuser.name">
+                </td>
+                <td>
+                    <input type="text"
+                        class="form-control"
+                        ng-model="newuser.pw">
+                </td>
+                <td>
+                    <input type="text"
+                        class="form-control"
+                        ng-model="newuser.type">
+                </td>
+                <td>
+                    <div class="btn btn-primary"
+                        ng-click="adduser()">Add user</div>
+                </td>
+            </tr>
+        </table>
+
+        <br>
+        <label>{{names.length}} Guests</label>
+        <br>
+        <div class="btn btn-danger"
+            ng-click="truncate()">Delete all guests</div>
+        <table class='table table-condensed'>
+            <tr>
+                <td></td>
+                <td>Name</td>
+                <td>Email</td>
+                <td>Timestamp</td>
+                <td>Logintype</td>
+                <td></td>
+            </tr>
+            <tr ng-repeat="name in names">
+                <td>{{name.vorname}}</td>
+                <td>{{name.name}}</td>
+                <td>{{name.email}}</td>
+                <td>{{name.timestamp}}</td>
+                <td>{{usersByID[name.userid].type}}</td>
+                <td>
+                    <div class="btn btn-sm btn-danger"
+                        ng-click="delete(name.id)">Delete</div>
+                </td>
+            </tr>
+        </table>
+    </center>
+</div>
+
+<script>
+    var app = angular.module('myApp', ['ngCookies']);
+    app.controller('myCtrl', function ($scope, $http, $cookies) {
+        $scope.account = { name: $cookies.get("name"), pw: $cookies.get("pw") };
+        $scope.names = {};
+        $scope.post = function (url, data) {
+            if (!data) data = {};
+            data.account = $scope.account;
+            return $http.post(url, data).then(function (r) { return r; });
+        }
+        $scope.login = function () {
+            if (!$scope.account.name) return;
+            $scope.post("api/login.php")
+                .then(function () {
+                    $scope.loginOK = true;
+                    if ($scope.account.remember) {
+                        $cookies.put("name", $scope.account.name);
+                        $cookies.put("pw", $scope.account.pw);
+                    }
+                    $scope.refresh();
+                })
+        }
+        $scope.login();
+        $scope.logout = function () {
+            $cookies.remove("name");
+            $cookies.remove("pw");
+            $scope.loginOK = false;
+        }
+
+        $scope.refresh = function () {
+            $scope.post("api/list.php")
+                .then(function (r) {
+                    $scope.names = r.data.list;
+                    $scope.users = r.data.users;
+                    $scope.settings = r.data.settings;
+                    $scope.usersByID = {};
+                    for(var i in $scope.users) $scope.usersByID[$scope.users[i].id] = $scope.users[i];
+                    console.log(r.data);
+                    console.log($scope.usersByID);
+                });
+        }
+        $scope.delete = function (id) {
+            $scope.post("api/deleteguest.php", { id: id })
+                .then(function (data) {
+                    $scope.refresh();
+                });
+        }
+        $scope.truncate = function (id) {
+            if (confirm("Do you want to delete ALL guests?")) {
+                $scope.post("api/truncate.php")
+                    .then(function () { $scope.refresh(); });
+            }
+        }
+        $scope.adduser = function () {
+            $scope.post("api/adduser.php", { name: $scope.newuser.name, pw: $scope.newuser.pw, type: $scope.newuser.type })
+                .then(function () { $scope.refresh(); });
+        }
+        $scope.deleteUser = function (id) {
+            $scope.post("api/deleteuser.php", { id: id })
+                .then(function () { $scope.refresh(); });
+        }
+        $scope.updateSetting = function (setting) {
+            $scope.post("api/setSetting.php", { type: setting.type, value: setting.newvalue })
+                .then(function () { $scope.refresh(); });
+        }
+    });
+</script>
