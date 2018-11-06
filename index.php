@@ -1,17 +1,18 @@
-﻿<!DOCTYPE html>
+﻿<?php include("api/engine.php"); ?>
+<!DOCTYPE html>
 <html lang="de">
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
-    <title>G&auml;steliste - Das Netzwerk</title>
+    <title><?php echo $GLOBALS["settings"]["title"]; ?></title>
 </head>
-<body style="background: black; color: white;">
+<body style="background: <?php echo $GLOBALS["settings"]["backgroundcolor"]; ?>; color: white;">
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.7/angular.min.js"></script> 
     <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
     
     <center ng-app="myApp" ng-controller="myCtrl">
         <div style="width: 250px;">
             <br><br>
-            <img src="logo.jpg">
+            <img src="<?php echo $GLOBALS["settings"]["logo"]; ?>">
             <br><br><br>
             <div ng-show="settings.full" class="alert alert-danger">
                 Die Liste ist leider schon voll!
@@ -40,6 +41,11 @@
                     <br><br>
                     <div ng-show="error" class="alert alert-danger" style="width: 250px; margin-bottom: 20px; text-align:left;">{{error}}<br><a href=".">Neu versuchen</a></div>
                     
+                    <label ng-hide="success">
+                        <input type="checkbox" ng-model="privacyaccepted">
+                        Ich akzeptiere die <a href="privacy.html" target="blank" style="text-decoration: underline">Datenschutzerklärung</a>
+                    </label>
+
                     <div ng-hide="error" class="btn-group-vertical" style="width: 250px; ">
                         <div class="btn btn-primary" ng-click="send();" ng-class="{'btn-success':success}">
                             <span ng-hide="success" class="glyphicon glyphicon-pencil"></span>
@@ -63,6 +69,7 @@
         $scope.addName();
         $scope.send = function(){
             if($scope.success) return;
+            if(!$scope.privacyaccepted) return;
             $http.post("api/insert.php", {names:$scope.names, account:$scope.account})
             .success(function(data){
                 if(data) $scope.error = data;

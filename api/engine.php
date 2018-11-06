@@ -1,42 +1,26 @@
 <?php
-$mysqli = new mysqli("localhost", "root", "", "guestlist") or die("<br>mysql connect failed");
+include(__DIR__."/DB.php");
 
-$GLOBALS["mysqli"] = $mysqli;
-$GLOBALS["mysqli"]->set_charset("utf8");
+$GLOBALS["settings"] = parse_ini_file(__DIR__."/settings.ini", true);
 
-function dbquery($query, $multiquery=FALSE){
-    $result;
-    if($multiquery) $result = $GLOBALS["mysqli"]->multi_query($query);   
-    else $result = $GLOBALS["mysqli"]->query($query);   
-    return $result;
-    
-    if ($GLOBALS["mysqli"]->error) {
-        http_response_code(500); 
-        die("DB Fehler in Query:\n".$query."\n \n".$GLOBALS["mysqli"]->error);
-    }
-}
+$mysqli = new mysqli($GLOBALS["settings"]["DB"]["url"], $GLOBALS["settings"]["DB"]["name"], $GLOBALS["settings"]["DB"]["pw"], $GLOBALS["settings"]["DB"]["db"]) or die("<br>mysql connect failed"); //ASADF
+
 function login(){
     $request = getRequest();   
 
-    $name = $GLOBALS["mysqli"]->real_escape_string(@$request->account->name);
-    $pw = $GLOBALS["mysqli"]->real_escape_string(@$request->account->pw);
+    $name = $request->account->name;
+    $pw = $request->account->pw;
 
-    $res = dbquery("SELECT * FROM users WHERE name='$name' AND pw='$pw'");
-    if($user = $res->fetch_assoc()) return $user;
+    if($user = DB::fetch("SELECT * FROM users WHERE name=? AND pw=?", [$name, $pw])) return $user;
     else return FALSE;
 }
 function settings(){
-    $result = dbquery("SELECT type,value,display FROM settings");
+    $results = DB::fetch_all("SELECT type,value,display FROM settings");
     $settings = array();
-    while($row = $result->fetch_assoc()){
-        $settings[$row["type"]] = $row;
+    foreach($results as $row){
+        $settings[$row->type] = $row->value;
     }
-    return $settings;
-}
-function fetch_all($result){
-    $data = array();
-    while($row = $result->fetch_assoc()) array_push($data, $row);
-    return $data;
+    return (object) $settings;
 }
 function getRequest(){
     $postdata = file_get_contents("php://input");

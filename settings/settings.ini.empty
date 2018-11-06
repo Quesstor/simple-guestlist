@@ -1,0 +1,9 @@
+title = Gästeliste
+logo = logo.jpg
+backgroundcolor = black
+
+[DB]
+url = localhost
+name = root
+pw = 
+db = easylist

@@ -2,7 +2,7 @@
 include("engine.php");        
 
 $user = login();
-if(!$user || $user["type"] != "admin") die("ACCESS DENIED");
+if(!$user || $user->type != "admin") die("ACCESS DENIED");
 
-dbquery("TRUNCATE TABLE easylist");
+DB::query("TRUNCATE TABLE easylist");
 ?>
